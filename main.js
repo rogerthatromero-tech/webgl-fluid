@@ -1990,7 +1990,7 @@ function webGLStart() {
    // initTexture();
    pool.Texture = gl.createTexture();
    //initTexture(pool.Texture, "tile/tile.png");
-   initTexture(pool.Texture, "tile/tile3.jpg");
+   initTexture(pool.Texture, "tile/tile6.jpg");
    currentPoolPattern = "white brick";
    water.TextureA = gl.createTexture();
    water.TextureB = gl.createTexture();

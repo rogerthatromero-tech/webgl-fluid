@@ -940,7 +940,7 @@ function drawScene() {
     }
 
     if(parameters.Pool_Pattern == "white brick" && currentPoolPattern != "white brick"){
-        initTexture(pool.Texture, "tile/tile3.jpg");
+        initTexture(pool.Texture, "tile/tile6.jpg");
         currentPoolPattern = "white brick";
     }
     if(parameters.Pool_Pattern == "marble" && currentPoolPattern != "marble") {

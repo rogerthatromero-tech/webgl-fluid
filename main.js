@@ -820,17 +820,15 @@ function handleMouseMove(event) {
 }
 
 function handleMouseWheel(event){
-        //console.log("scroll");
-    var move = event.wheelDelta/240;
-    
-    if (move < 0 || pMatrix[14] > -2){
-      //  pMatrix = mat4.translate(pMatrix, [0, 0, event.wheelDelta/240]);
+    // Disable scroll-to-zoom for Shopify embed
+    if (event.preventDefault) {
+        event.preventDefault();
+    } else {
+        event.returnValue = false;
     }
-    if(fov+move< 90 && fov+move> 25){
-        fov += move;
-    }
-    return false; // Don't scroll the page 
+    return false; // Don't scroll the page
 }
+
 
 function startInteraction(x,y){
     initTracer();

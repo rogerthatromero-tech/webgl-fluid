@@ -940,7 +940,7 @@ function drawScene() {
     }
 
     if(parameters.Pool_Pattern == "white brick" && currentPoolPattern != "white brick"){
-        initTexture(pool.Texture, "tile/tile6.jpg");
+        initTexture(pool.Texture, "tile/tile7.jpg");
         currentPoolPattern = "white brick";
     }
     if(parameters.Pool_Pattern == "marble" && currentPoolPattern != "marble") {
@@ -1990,7 +1990,7 @@ function webGLStart() {
    // initTexture();
    pool.Texture = gl.createTexture();
    //initTexture(pool.Texture, "tile/tile.png");
-   initTexture(pool.Texture, "tile/tile6.jpg");
+   initTexture(pool.Texture, "tile/tile7.jpg");
    currentPoolPattern = "white brick";
    water.TextureA = gl.createTexture();
    water.TextureB = gl.createTexture();

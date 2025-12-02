@@ -90,6 +90,16 @@
     var objModel;    //processed gl object data for obj
     var depthModel = {};   //put tmp necessary vbo, ibo info into this object, for drawing depth
 
+var sphere = {};
+var objRaw;     // raw primitive data for obj loading
+var objModel;   // processed gl object data for obj
+var depthModel = {};   // depth model for obj
+
+// NEW: second object (prism)
+var objRaw2;    // raw data for prism
+var objModel2;  // processed gl object data for prism
+
+
     var depthTexture;    //for light-based depth rendering
     var colorTexture;     //for light-based depth rendering
     var depthTexture2;   //for camera-based depth rendering
@@ -714,60 +724,60 @@ function initBuffers(model, primitive){
 
 function initObjs(){
 
-//objRaw = loadObj("objs/suzanne.obj");
- //objRaw = loadObj("objs/prism.obj");
-//objRaw = loadObj("objs/apple.obj");
-objRaw = loadObj("objs/appleHighPoly.obj");
-//objRaw = loadObj("objs/duck.obj");
-//objRaw = loadObj("objs/duckHighPoly.obj");
-
+    // MAIN OBJECT (APPLE)
+    //objRaw = loadObj("objs/suzanne.obj");
+    //objRaw = loadObj("objs/prism.obj");
+    //objRaw = loadObj("objs/apple.obj");
+    objRaw = loadObj("objs/appleHighPoly.obj");
+    //objRaw = loadObj("objs/duck.obj");
+    //objRaw = loadObj("objs/duckHighPoly.obj");
 
     objRaw.addCallback(function () {
         objModel = new createModel(gl, objRaw);
-          var tmp = {};
-          tmp.vertices = [];
-          tmp.indices = [];
-          tmp.normals = [];
-          tmp.texcoords = [];
-          for(var i=0; i<objRaw.numGroups(); i++){
-            for(var j=0; j<objRaw.vertices(i).length; j++){
+        var tmp = {};
+        tmp.vertices = [];
+        tmp.indices = [];
+        tmp.normals = [];
+        tmp.texcoords = [];
+        for (var i = 0; i < objRaw.numGroups(); i++) {
+            for (var j = 0; j < objRaw.vertices(i).length; j++) {
                 tmp.vertices.push(objRaw.vertices(i)[j]);
             }
-          }
+        }
 
-          for(var i=0; i<objRaw.numGroups(); i++){
-              for(var j=0; j<objRaw.indices(i).length; j++){
+        for (var i = 0; i < objRaw.numGroups(); i++) {
+            for (var j = 0; j < objRaw.indices(i).length; j++) {
                 tmp.indices.push(objRaw.indices(i)[j]);
             }
-          }
+        }
 
-
-          for(var i=0; i<objRaw.numGroups(); i++){
-              for(var j=0; j<objRaw.normals(i).length; j++){
+        for (var i = 0; i < objRaw.numGroups(); i++) {
+            for (var j = 0; j < objRaw.normals(i).length; j++) {
                 tmp.normals.push(objRaw.normals(i)[j]);
             }
-          }
+        }
 
-           for(var i=0; i<objRaw.numGroups(); i++){
-              for(var j=0; j<objRaw.texcoords(i).length; j++){
+        for (var i = 0; i < objRaw.numGroups(); i++) {
+            for (var j = 0; j < objRaw.texcoords(i).length; j++) {
                 tmp.texcoords.push(objRaw.texcoords(i)[j]);
             }
-          }
+        }
          
-          //tmp.numIndices = sum + cubePool.numIndices;
-          tmp.numIndices = tmp.indices.length;
-          initBuffers(depthModel, tmp);
-   
-
-
-          // console.log("pool indices: " + cubePool.numIndices);
-          // console.log("obj indices: " + sum);
-          // console.log("depthModel indices: " + depthModel.IBO.numItems);
+        tmp.numIndices = tmp.indices.length;
+        initBuffers(depthModel, tmp);
     });
     objRaw.executeCallBackFunc();
     registerAsyncObj(gl, objRaw);
 
+    // SECOND OBJECT (PRISM)
+    objRaw2 = loadObj("objs/prism.obj");
+    objRaw2.addCallback(function () {
+        objModel2 = new createModel(gl, objRaw2);
+    });
+    objRaw2.executeCallBackFunc();
+    registerAsyncObj(gl, objRaw2);
 }
+
 
    
 
@@ -1007,9 +1017,20 @@ function drawScene() {
     drawSkyBox();
 
     drawPool();
-    if(isSphere == 1) drawObj(sphere);
-    else drawObj(objModel);
+
+    if (isSphere == 1) {
+        drawObj(sphere);
+    } else {
+        drawObj(objModel);   // apple
+    }
+
+    // NEW: draw prism if it has finished loading
+    if (objModel2) {
+        drawObj(objModel2);
+    }
+
     drawWater();
+
      
     drawNormal();
     drawSimulation();

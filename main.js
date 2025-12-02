@@ -714,12 +714,13 @@ function initBuffers(model, primitive){
 
 function initObjs(){
 
-    //objRaw = loadObj("objs/suzanne.obj");
-   //objRaw = loadObj("objs/prism.obj");
+//objRaw = loadObj("objs/suzanne.obj");
+ //objRaw = loadObj("objs/prism.obj");
 //objRaw = loadObj("objs/apple.obj");
-//objRaw = loadObj("objs/appleHighPoly.obj");
-    objRaw = loadObj("objs/duck.obj");
-    //objRaw = loadObj("objs/duckHighPoly.obj");
+objRaw = loadObj("objs/appleHighPoly.obj");
+//objRaw = loadObj("objs/duck.obj");
+//objRaw = loadObj("objs/duckHighPoly.obj");
+
 
     objRaw.addCallback(function () {
         objModel = new createModel(gl, objRaw);

@@ -95,6 +95,9 @@ var objRaw;     // raw primitive data for obj loading
 var objModel;   // processed gl object data for obj
 var depthModel = {};   // depth model for obj
 
+// NEW: second object (prism)
+var objRaw2;    // raw data for prism
+var objModel2;  // processed gl object data for prism
 
 
     var depthTexture;    //for light-based depth rendering
@@ -721,14 +724,13 @@ function initBuffers(model, primitive){
 
 function initObjs(){
 
-    // MAIN OBJECT (PRISM)
+    // MAIN OBJECT (APPLE)
     //objRaw = loadObj("objs/suzanne.obj");
-        objRaw2 = loadObj("objs/prism.obj");
+    //objRaw = loadObj("objs/prism.obj");
     //objRaw = loadObj("objs/apple.obj");
-    //objRaw = loadObj("objs/appleHighPoly.obj");
+    objRaw = loadObj("objs/appleHighPoly.obj");
     //objRaw = loadObj("objs/duck.obj");
     //objRaw = loadObj("objs/duckHighPoly.obj");
-
 
     objRaw.addCallback(function () {
         objModel = new createModel(gl, objRaw);
@@ -767,7 +769,13 @@ function initObjs(){
     objRaw.executeCallBackFunc();
     registerAsyncObj(gl, objRaw);
 
-
+    // SECOND OBJECT (PRISM)
+    objRaw2 = loadObj("objs/prism.obj");
+    objRaw2.addCallback(function () {
+        objModel2 = new createModel(gl, objRaw2);
+    });
+    objRaw2.executeCallBackFunc();
+    registerAsyncObj(gl, objRaw2);
 }
 
 
@@ -963,13 +971,7 @@ function drawScene() {
         lightProj = mat4.ortho(-2,2,-2,2,-4,4);  //axis-aligned box (-10,10),(-10,10),(-10,20) on the X,Y and Z axes
         mat4.identity(lightMatrix);
         mat4.multiply(lightMatrix, lightView);
-
-        if (isSphere == 1) {
-            drawDepth(colorTexture, depthTexture, lightMatrix, lightProj, sphere, false);   //depth from light (sphere)
-        } else {
-            drawDepth(colorTexture, depthTexture, lightMatrix, lightProj, objModel, false); //depth from light (prism)
-        }
-
+        drawDepth(colorTexture,depthTexture, lightMatrix, lightProj,depthModel, false);   //depth from light
         initTracer();
         var ray = vec3.create();
         var cam = vec3.create(tracer.eye);
@@ -998,22 +1000,16 @@ function drawScene() {
             var reflectView = mat4.lookAt(point, sphere.center, upVector);   //[eye, center, up]
             mat4.identity(reflectModelView);
             mat4.multiply(reflectModelView, reflectView);
-
-            if (isSphere == 1) {
-                drawDepth(colorTexture3, depthTexture3, reflectModelView, reflectProj, sphere, true, 1);    //reflection (sphere)
-            } else {
-                drawDepth(colorTexture3, depthTexture3, reflectModelView, reflectProj, objModel, true, 1);   //reflection (prism)
-            }
-
+            drawDepth(colorTexture3, depthTexture3, reflectModelView, reflectProj, depthModel, true, 1);    //color from the point of reflections
       // }
 
    // }
-    if (isSphere == 1) {
-        drawDepth(colorTexture2, depthTexture2, mvMatrix, pMatrix, sphere, false);   //depth from camera (sphere)
-    } else {
-        drawDepth(colorTexture2, depthTexture2, mvMatrix, pMatrix, objModel, false); //depth from camera (prism)
+    if(isSphere == 1){
+        drawDepth(colorTexture2, depthTexture2, mvMatrix, pMatrix, sphere, false);   //depth from camera
     }
-
+    else{
+        drawDepth(colorTexture2, depthTexture2, mvMatrix, pMatrix, depthModel, false);   //depth from camera
+    }
     
     drawGodrayPass1();
     drawGodrayPass2();
@@ -1022,12 +1018,28 @@ function drawScene() {
 
     drawPool();
 
+    // Apple / sphere (unchanged)
     if (isSphere == 1) {
         drawObj(sphere);
     } else {
-        drawObj(objModel);
+        drawObj(objModel);   // apple
     }
 
+    // NEW: draw prism slightly to the left of the apple
+    if (objModel2) {
+        // backup current mvMatrix
+        var mvMatrixBackup = mat4.create();
+        mat4.set(mvMatrix, mvMatrixBackup);
+
+        // move prism left on X (tweak -0.4 if needed)
+        mat4.translate(mvMatrix, [-0.4, 0.0, 0.0]);
+
+        // draw prism with the shifted matrix
+        drawObj(objModel2);
+
+        // restore mvMatrix so water / rest of scene stay correct
+        mat4.set(mvMatrixBackup, mvMatrix);
+    }
 
     drawWater();
 
@@ -1621,41 +1633,19 @@ function drawDepth(colTexture, depTexture, modelView, proj, model, renderColor, 
     gl.uniformMatrix4fv(depthProg.mvMatrixUniform, false, modelView); 
 
 
-    // Support both simple models (pool, water, sphere, depthModel) and multi-group objModel
-    if (typeof model.numGroups === "function") {
-        // Multi-group model (objModel / prism)
-        for (var i = 0; i < model.numGroups(); i++) {
-            gl.bindBuffer(gl.ARRAY_BUFFER, model.VBO(i));
-            gl.vertexAttribPointer(depthProg.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-            gl.enableVertexAttribArray(depthProg.vertexPositionAttribute);
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.VBO);
+    gl.vertexAttribPointer(depthProg.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(depthProg.vertexPositionAttribute);
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, model.NBO(i));
-            gl.vertexAttribPointer(depthProg.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
-            gl.enableVertexAttribArray(depthProg.vertexNormalAttribute);
-
-            gl.uniform3fv(depthProg.centerUniform, sphere.center);
-            gl.uniform1i(depthProg.modeUniform, mode);
-
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.IBO(i));
-            gl.drawElements(gl.TRIANGLES, model.numIndices(i), gl.UNSIGNED_SHORT, 0);
-        }
-    } else {
-        // Single-mesh model (existing behavior)
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.VBO);
-        gl.vertexAttribPointer(depthProg.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(depthProg.vertexPositionAttribute);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.NBO);
-        gl.vertexAttribPointer(depthProg.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(depthProg.vertexNormalAttribute);
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.NBO);
+    gl.vertexAttribPointer(depthProg.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(depthProg.vertexNormalAttribute);
         
-        gl.uniform3fv(depthProg.centerUniform, sphere.center);
-        gl.uniform1i(depthProg.modeUniform, mode);
+    gl.uniform3fv(depthProg.centerUniform, sphere.center);
+    gl.uniform1i(depthProg.modeUniform, mode);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.IBO);
-        gl.drawElements(gl.TRIANGLES, model.IBO.numItems, gl.UNSIGNED_SHORT, 0);
-    }
-
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.IBO);
+    gl.drawElements(gl.TRIANGLES, model.IBO.numItems, gl.UNSIGNED_SHORT, 0);
 
 
      //-------------- after rendering---------------------------------------------------

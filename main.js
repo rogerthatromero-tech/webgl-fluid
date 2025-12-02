@@ -49,7 +49,7 @@
     var eyePos;
     var radius = 4.0;
     var azimuth = 0.5*Math.PI;
-    var elevation = 0.1;
+    var elevation = -0.1;
     var fov = 45.0;
     var eye = sphericalToCartesian(radius, azimuth, elevation);
     var center = [0.0, 0.0, 0.0];
@@ -89,6 +89,16 @@
     var objRaw;     //raw primitive data for obj loading
     var objModel;    //processed gl object data for obj
     var depthModel = {};   //put tmp necessary vbo, ibo info into this object, for drawing depth
+
+var sphere = {};
+var objRaw;     // raw primitive data for obj loading
+var objModel;   // processed gl object data for obj
+var depthModel = {};   // depth model for obj
+
+// NEW: second object (prism)
+var objRaw2;    // raw data for prism
+var objModel2;  // processed gl object data for prism
+
 
     var depthTexture;    //for light-based depth rendering
     var colorTexture;     //for light-based depth rendering
@@ -714,59 +724,60 @@ function initBuffers(model, primitive){
 
 function initObjs(){
 
+    // MAIN OBJECT (APPLE)
     //objRaw = loadObj("objs/suzanne.obj");
-   //objRaw = loadObj("objs/prism.obj");
-//objRaw = loadObj("objs/apple.obj");
-//objRaw = loadObj("objs/appleHighPoly.obj");
-    objRaw = loadObj("objs/duck.obj");
+    //objRaw = loadObj("objs/prism.obj");
+    //objRaw = loadObj("objs/apple.obj");
+    objRaw = loadObj("objs/appleHighPoly.obj");
+    //objRaw = loadObj("objs/duck.obj");
     //objRaw = loadObj("objs/duckHighPoly.obj");
 
     objRaw.addCallback(function () {
         objModel = new createModel(gl, objRaw);
-          var tmp = {};
-          tmp.vertices = [];
-          tmp.indices = [];
-          tmp.normals = [];
-          tmp.texcoords = [];
-          for(var i=0; i<objRaw.numGroups(); i++){
-            for(var j=0; j<objRaw.vertices(i).length; j++){
+        var tmp = {};
+        tmp.vertices = [];
+        tmp.indices = [];
+        tmp.normals = [];
+        tmp.texcoords = [];
+        for (var i = 0; i < objRaw.numGroups(); i++) {
+            for (var j = 0; j < objRaw.vertices(i).length; j++) {
                 tmp.vertices.push(objRaw.vertices(i)[j]);
             }
-          }
+        }
 
-          for(var i=0; i<objRaw.numGroups(); i++){
-              for(var j=0; j<objRaw.indices(i).length; j++){
+        for (var i = 0; i < objRaw.numGroups(); i++) {
+            for (var j = 0; j < objRaw.indices(i).length; j++) {
                 tmp.indices.push(objRaw.indices(i)[j]);
             }
-          }
+        }
 
-
-          for(var i=0; i<objRaw.numGroups(); i++){
-              for(var j=0; j<objRaw.normals(i).length; j++){
+        for (var i = 0; i < objRaw.numGroups(); i++) {
+            for (var j = 0; j < objRaw.normals(i).length; j++) {
                 tmp.normals.push(objRaw.normals(i)[j]);
             }
-          }
+        }
 
-           for(var i=0; i<objRaw.numGroups(); i++){
-              for(var j=0; j<objRaw.texcoords(i).length; j++){
+        for (var i = 0; i < objRaw.numGroups(); i++) {
+            for (var j = 0; j < objRaw.texcoords(i).length; j++) {
                 tmp.texcoords.push(objRaw.texcoords(i)[j]);
             }
-          }
+        }
          
-          //tmp.numIndices = sum + cubePool.numIndices;
-          tmp.numIndices = tmp.indices.length;
-          initBuffers(depthModel, tmp);
-   
-
-
-          // console.log("pool indices: " + cubePool.numIndices);
-          // console.log("obj indices: " + sum);
-          // console.log("depthModel indices: " + depthModel.IBO.numItems);
+        tmp.numIndices = tmp.indices.length;
+        initBuffers(depthModel, tmp);
     });
     objRaw.executeCallBackFunc();
     registerAsyncObj(gl, objRaw);
 
+    // SECOND OBJECT (PRISM)
+    objRaw2 = loadObj("objs/prism.obj");
+    objRaw2.addCallback(function () {
+        objModel2 = new createModel(gl, objRaw2);
+    });
+    objRaw2.executeCallBackFunc();
+    registerAsyncObj(gl, objRaw2);
 }
+
 
    
 
@@ -820,17 +831,15 @@ function handleMouseMove(event) {
 }
 
 function handleMouseWheel(event){
-        //console.log("scroll");
-    var move = event.wheelDelta/240;
-    
-    if (move < 0 || pMatrix[14] > -2){
-      //  pMatrix = mat4.translate(pMatrix, [0, 0, event.wheelDelta/240]);
+    // Disable scroll-to-zoom for Shopify embed
+    if (event.preventDefault) {
+        event.preventDefault();
+    } else {
+        event.returnValue = false;
     }
-    if(fov+move< 90 && fov+move> 25){
-        fov += move;
-    }
-    return false; // Don't scroll the page 
+    return false; // Don't scroll the page
 }
+
 
 function startInteraction(x,y){
     initTracer();
@@ -940,7 +949,7 @@ function drawScene() {
     }
 
     if(parameters.Pool_Pattern == "white brick" && currentPoolPattern != "white brick"){
-        initTexture(pool.Texture, "tile/tile3.jpg");
+        initTexture(pool.Texture, "tile/tile4.jpg");
         currentPoolPattern = "white brick";
     }
     if(parameters.Pool_Pattern == "marble" && currentPoolPattern != "marble") {
@@ -1008,9 +1017,33 @@ function drawScene() {
     drawSkyBox();
 
     drawPool();
-    if(isSphere == 1) drawObj(sphere);
-    else drawObj(objModel);
+
+    // Apple / sphere (unchanged)
+    if (isSphere == 1) {
+        drawObj(sphere);
+    } else {
+        drawObj(objModel);   // apple
+    }
+
+    // NEW: draw prism slightly to the left of the apple
+    if (objModel2) {
+        // backup current mvMatrix
+        var mvMatrixBackup = mat4.create();
+        mat4.set(mvMatrix, mvMatrixBackup);
+
+        // move prism left on X (tweak -0.4 if needed)
+        mat4.translate(mvMatrix, [-0.4, 0.0, 0.0]);
+
+        // draw prism with the shifted matrix
+        drawObj(objModel2);
+
+        // restore mvMatrix so water / rest of scene stay correct
+        mat4.set(mvMatrixBackup, mvMatrix);
+    }
+
     drawWater();
+
+
      
     drawNormal();
     drawSimulation();
@@ -1982,7 +2015,7 @@ function webGLStart() {
   initBuffers(sphere, sphereObj);
   initBuffers(water, planeWater);
   initBuffers(quad, screenQuad);
-  sphere.center = vec3.create([0.0,1.0,0.0]);
+  sphere.center = vec3.create([0.0, -0.15, 0.0]);
   sphere.oldcenter = vec3.create(sphere.center);
   sphere.radius = sphereObj.radius;
 
@@ -1990,7 +2023,7 @@ function webGLStart() {
    // initTexture();
    pool.Texture = gl.createTexture();
    //initTexture(pool.Texture, "tile/tile.png");
-   initTexture(pool.Texture, "tile/tile3.jpg");
+   initTexture(pool.Texture, "tile/tile4.jpg");
    currentPoolPattern = "white brick";
    water.TextureA = gl.createTexture();
    water.TextureB = gl.createTexture();
@@ -2074,5 +2107,3 @@ initCustomeTexture( gradTexture, gl.RGB, gl.NEAREST, gl.UNSIGNED_BYTE, 16, 1, gr
     //tick();
    
 }
-
-

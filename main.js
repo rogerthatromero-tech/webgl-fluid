@@ -1,5 +1,3 @@
-
-
     var gl;
     var tracer = {};
 
@@ -98,7 +96,7 @@ var depthModel = {};   // depth model for obj
 // NEW: second object (prism)
 var objRaw2;    // raw data for prism
 var objModel2;  // processed gl object data for prism
-
+var depthModel2 = {};  // NEW: depth model for prism
 
     var depthTexture;    //for light-based depth rendering
     var colorTexture;     //for light-based depth rendering
@@ -501,8 +499,8 @@ var objModel2;  // processed gl object data for prism
 
         //----------------------quad debug shader----------------------------------------------
         quadProg = gl.createProgram();
-        gl.attachShader(quadProg, getShader(gl, "quad-vs"));
-        gl.attachShader(quadProg, getShader(gl, "quad-fs"));
+        gl.attachShader(quadProg, getShader(quadProg, "quad-vs"));
+        gl.attachShader(quadProg, getShader(quadProg, "quad-fs"));
         gl.linkProgram(quadProg);
 
         if (!gl.getProgramParameter(quadProg, gl.LINK_STATUS)) {
@@ -773,6 +771,39 @@ function initObjs(){
     objRaw2 = loadObj("objs/prism.obj");
     objRaw2.addCallback(function () {
         objModel2 = new createModel(gl, objRaw2);
+
+        // NEW: build depth model for prism
+        var tmp2 = {};
+        tmp2.vertices = [];
+        tmp2.indices = [];
+        tmp2.normals = [];
+        tmp2.texcoords = [];
+        for (var i = 0; i < objRaw2.numGroups(); i++) {
+            for (var j = 0; j < objRaw2.vertices(i).length; j++) {
+                tmp2.vertices.push(objRaw2.vertices(i)[j]);
+            }
+        }
+
+        for (var i = 0; i < objRaw2.numGroups(); i++) {
+            for (var j = 0; j < objRaw2.indices(i).length; j++) {
+                tmp2.indices.push(objRaw2.indices(i)[j]);
+            }
+        }
+
+        for (var i = 0; i < objRaw2.numGroups(); i++) {
+            for (var j = 0; j < objRaw2.normals(i).length; j++) {
+                tmp2.normals.push(objRaw2.normals(i)[j]);
+            }
+        }
+
+        for (var i = 0; i < objRaw2.numGroups(); i++) {
+            for (var j = 0; j < objRaw2.texcoords(i).length; j++) {
+                tmp2.texcoords.push(objRaw2.texcoords(i)[j]);
+            }
+        }
+
+        tmp2.numIndices = tmp2.indices.length;
+        initBuffers(depthModel2, tmp2);
     });
     objRaw2.executeCallBackFunc();
     registerAsyncObj(gl, objRaw2);
@@ -971,7 +1002,14 @@ function drawScene() {
         lightProj = mat4.ortho(-2,2,-2,2,-4,4);  //axis-aligned box (-10,10),(-10,10),(-10,20) on the X,Y and Z axes
         mat4.identity(lightMatrix);
         mat4.multiply(lightMatrix, lightView);
-        drawDepth(colorTexture,depthTexture, lightMatrix, lightProj,depthModel, false);   //depth from light
+
+        // NEW: depth from light for both apple + prism when not sphere
+        if (isSphere == 0 && depthModel2 && depthModel2.VBO) {
+            drawDepthMulti(colorTexture, depthTexture, lightMatrix, lightProj, [depthModel, depthModel2], false);   //depth from light (two models)
+        } else {
+            drawDepth(colorTexture, depthTexture, lightMatrix, lightProj, depthModel, false);   //depth from light (single model)
+        }
+
         initTracer();
         var ray = vec3.create();
         var cam = vec3.create(tracer.eye);
@@ -1000,7 +1038,13 @@ function drawScene() {
             var reflectView = mat4.lookAt(point, sphere.center, upVector);   //[eye, center, up]
             mat4.identity(reflectModelView);
             mat4.multiply(reflectModelView, reflectView);
-            drawDepth(colorTexture3, depthTexture3, reflectModelView, reflectProj, depthModel, true, 1);    //color from the point of reflections
+
+            // NEW: reflection depth for both apple + prism when not sphere
+            if (isSphere == 0 && depthModel2 && depthModel2.VBO) {
+                drawDepthMulti(colorTexture3, depthTexture3, reflectModelView, reflectProj, [depthModel, depthModel2], true, 1);    //color from reflections (two models)
+            } else {
+                drawDepth(colorTexture3, depthTexture3, reflectModelView, reflectProj, depthModel, true, 1);    //color from the point of reflections (single model)
+            }
       // }
 
    // }
@@ -1008,7 +1052,12 @@ function drawScene() {
         drawDepth(colorTexture2, depthTexture2, mvMatrix, pMatrix, sphere, false);   //depth from camera
     }
     else{
-        drawDepth(colorTexture2, depthTexture2, mvMatrix, pMatrix, depthModel, false);   //depth from camera
+        // NEW: camera depth for both apple + prism when not sphere
+        if (depthModel2 && depthModel2.VBO) {
+            drawDepthMulti(colorTexture2, depthTexture2, mvMatrix, pMatrix, [depthModel, depthModel2], false);
+        } else {
+            drawDepth(colorTexture2, depthTexture2, mvMatrix, pMatrix, depthModel, false);   //depth from camera (single model)
+        }
     }
     
     drawGodrayPass1();
@@ -1663,6 +1712,46 @@ function drawDepth(colTexture, depTexture, modelView, proj, model, renderColor, 
    // gl.disable(gl.DEPTH_TEST);
 
     
+}
+
+// NEW: draw depth for multiple models into the same textures
+function drawDepthMulti(colTexture, depTexture, modelView, proj, models, renderColor, mode){   // draw depth for multiple models
+    mode = mode || 0;
+    initFrameBuffer(colTexture, depTexture, gl.viewportWidth, gl.viewportHeight);
+
+    gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.colorMask(renderColor, renderColor, renderColor, renderColor);
+    gl.useProgram(depthProg);
+
+    gl.uniformMatrix4fv(depthProg.pMatrixUniform, false, proj);
+    gl.uniformMatrix4fv(depthProg.mvMatrixUniform, false, modelView); 
+    gl.uniform3fv(depthProg.centerUniform, sphere.center);
+    gl.uniform1i(depthProg.modeUniform, mode);
+
+    for (var m = 0; m < models.length; m++) {
+        var model = models[m];
+        if (!model || !model.VBO || !model.NBO || !model.IBO) continue;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.VBO);
+        gl.vertexAttribPointer(depthProg.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(depthProg.vertexPositionAttribute);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.NBO);
+        gl.vertexAttribPointer(depthProg.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(depthProg.vertexNormalAttribute);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.IBO);
+        gl.drawElements(gl.TRIANGLES, model.IBO.numItems, gl.UNSIGNED_SHORT, 0);
+    }
+
+    gl.disableVertexAttribArray(depthProg.vertexPositionAttribute);
+    gl.disableVertexAttribArray(depthProg.vertexNormalAttribute);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.colorMask(true, true, true, true); 
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
 function drawWind(){

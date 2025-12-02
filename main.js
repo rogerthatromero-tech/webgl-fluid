@@ -726,7 +726,7 @@ function initObjs(){
 
     // MAIN OBJECT (APPLE)
     //objRaw = loadObj("objs/suzanne.obj");
-    //objRaw = loadObj("objs/camo3dlogo2.obj");
+    //objRaw = loadObj("objs/prism.obj");
     //objRaw = loadObj("objs/apple.obj");
     objRaw = loadObj("objs/appleHighPoly.obj");
     //objRaw = loadObj("objs/duck.obj");
@@ -770,7 +770,7 @@ function initObjs(){
     registerAsyncObj(gl, objRaw);
 
     // SECOND OBJECT (PRISM)
-    objRaw2 = loadObj("objs/camo3dlogo2.obj");
+    objRaw2 = loadObj("objs/prism.obj");
     objRaw2.addCallback(function () {
         objModel2 = new createModel(gl, objRaw2);
     });

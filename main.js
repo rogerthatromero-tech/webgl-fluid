@@ -1018,18 +1018,31 @@ function drawScene() {
 
     drawPool();
 
+    // Apple / sphere (unchanged)
     if (isSphere == 1) {
         drawObj(sphere);
     } else {
         drawObj(objModel);   // apple
     }
 
-    // NEW: draw prism if it has finished loading
+    // NEW: draw prism slightly to the left of the apple
     if (objModel2) {
+        // backup current mvMatrix
+        var mvMatrixBackup = mat4.create();
+        mat4.set(mvMatrix, mvMatrixBackup);
+
+        // move prism left on X (tweak -0.4 if needed)
+        mat4.translate(mvMatrix, [-0.4, 0.0, 0.0]);
+
+        // draw prism with the shifted matrix
         drawObj(objModel2);
+
+        // restore mvMatrix so water / rest of scene stay correct
+        mat4.set(mvMatrixBackup, mvMatrix);
     }
 
     drawWater();
+
 
      
     drawNormal();

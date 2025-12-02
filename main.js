@@ -211,39 +211,53 @@ var objModel2;  // processed gl object data for prism
         return shader;
     }
 
-    window.onload = function() {
-        var gui = new dat.GUI();
-        //var gui = new dat.GUI({ autoPlace: false });
-       // var customContainer = document.getElementById('gui-container');
-       // customContainer.appendChild(gui.domElement);
-        gui.add(parameters, 'Caustic');
-        gui.add(parameters, 'Wind');
-        gui.add(parameters, 'Rain');
-        gui.add(parameters, 'Object', [ 'sphere', 'duck']);
-        gui.add(parameters, 'Pool_Pattern', ['white brick', 'marble', 'blue tile', 'golden tile']);
-        gui.add(parameters, 'Sphere_Radius', 0.1, 0.5); 
-        gui.add(parameters, 'God_rays');
-        var f1 = gui.addFolder('Debug Image');
-        f1.add(parameters, 'Depth_From_Light');
-        f1.add(parameters, 'Depth_From_Camera');
-        f1.add(parameters, 'Reflection_Texture');
-        f1.add(parameters, 'Draw_Obj_Reflection');
-    };
+window.onload = function() {
+    var gui = new dat.GUI();
+    //var gui = new dat.GUI({ autoPlace: false });
+   // var customContainer = document.getElementById('gui-container');
+   // customContainer.appendChild(gui.domElement);
+    gui.add(parameters, 'Caustic');
+    gui.add(parameters, 'Wind');
+    gui.add(parameters, 'Rain');
+    gui.add(parameters, 'Object', [ 'sphere', 'duck']);
+    gui.add(parameters, 'Pool_Pattern', ['white brick', 'marble', 'blue tile', 'golden tile']);
+    gui.add(parameters, 'Sphere_Radius', 0.1, 0.5); 
+    gui.add(parameters, 'God_rays');
 
-    var parameters = new function(){
-        this.Caustic = true;
+    var f1 = gui.addFolder('Debug Image');
+    f1.add(parameters, 'Depth_From_Light');
+    f1.add(parameters, 'Depth_From_Camera');
+    f1.add(parameters, 'Reflection_Texture');
+    f1.add(parameters, 'Draw_Obj_Reflection');
 
-        this.Object = "duck";
-        this.Pool_Pattern = "white brick";
-        this.Sphere_Radius = 0.25;        
-        this.Wind = true;
-        this.Rain = false;
-        this.Depth_From_Light = false;
-        this.Depth_From_Camera = false;
-        this.God_rays = false;
-        this.Reflection_Texture = false;
-        this.Draw_Obj_Reflection = false;    
-    }
+    // NEW: Prism controls
+    var f2 = gui.addFolder('Prism Position');
+    f2.add(parameters, 'Prism_X', -1.0, 1.0).step(0.01).name('X (left/right)');
+    f2.add(parameters, 'Prism_Y', -0.8, 0.4).step(0.01).name('Y (up/down)');
+    f2.add(parameters, 'Prism_Z', -1.0, 1.0).step(0.01).name('Z (front/back)');
+};
+
+
+var parameters = new function(){
+    this.Caustic = true;
+
+    this.Object = "duck";
+    this.Pool_Pattern = "white brick";
+    this.Sphere_Radius = 0.25;        
+    this.Wind = true;
+    this.Rain = false;
+    this.Depth_From_Light = false;
+    this.Depth_From_Camera = false;
+    this.God_rays = false;
+    this.Reflection_Texture = false;
+    this.Draw_Obj_Reflection = false;
+
+    // NEW: independent prism position (X, Y, Z)
+    this.Prism_X = -0.4;   // left/right
+    this.Prism_Y = -0.15;  // up/down (into water)
+    this.Prism_Z = 0.0;    // front/back
+};
+
 
 
     function initShaders() {
@@ -1025,23 +1039,25 @@ function drawScene() {
         drawObj(objModel);   // apple
     }
 
-    // NEW: draw prism slightly to the left of the apple
+    // Prism: independent position via GUI
     if (objModel2) {
-        // backup current mvMatrix
         var mvMatrixBackup = mat4.create();
         mat4.set(mvMatrix, mvMatrixBackup);
 
-        // move prism left on X (tweak -0.4 if needed)
-        mat4.translate(mvMatrix, [-0.4, 0.0, 0.0]);
+        // Use front-end parameters to position the prism
+        mat4.translate(mvMatrix, [
+            parameters.Prism_X,
+            parameters.Prism_Y,
+            parameters.Prism_Z
+        ]);
 
-        // draw prism with the shifted matrix
         drawObj(objModel2);
 
-        // restore mvMatrix so water / rest of scene stay correct
         mat4.set(mvMatrixBackup, mvMatrix);
     }
 
     drawWater();
+
 
 
      

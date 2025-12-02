@@ -95,9 +95,6 @@ var objRaw;     // raw primitive data for obj loading
 var objModel;   // processed gl object data for obj
 var depthModel = {};   // depth model for obj
 
-// NEW: second object (prism)
-var objRaw2;    // raw data for prism
-var objModel2;  // processed gl object data for prism
 
 
     var depthTexture;    //for light-based depth rendering
@@ -724,13 +721,14 @@ function initBuffers(model, primitive){
 
 function initObjs(){
 
-    // MAIN OBJECT (APPLE)
+    // MAIN OBJECT (PRISM)
     //objRaw = loadObj("objs/suzanne.obj");
-    //objRaw = loadObj("objs/prism.obj");
+    objRaw = loadObj("objs/prism.obj");
     //objRaw = loadObj("objs/apple.obj");
-    objRaw = loadObj("objs/appleHighPoly.obj");
+    //objRaw = loadObj("objs/appleHighPoly.obj");
     //objRaw = loadObj("objs/duck.obj");
     //objRaw = loadObj("objs/duckHighPoly.obj");
+
 
     objRaw.addCallback(function () {
         objModel = new createModel(gl, objRaw);
@@ -769,13 +767,7 @@ function initObjs(){
     objRaw.executeCallBackFunc();
     registerAsyncObj(gl, objRaw);
 
-    // SECOND OBJECT (PRISM)
-    objRaw2 = loadObj("objs/prism.obj");
-    objRaw2.addCallback(function () {
-        objModel2 = new createModel(gl, objRaw2);
-    });
-    objRaw2.executeCallBackFunc();
-    registerAsyncObj(gl, objRaw2);
+
 }
 
 
@@ -1018,28 +1010,12 @@ function drawScene() {
 
     drawPool();
 
-    // Apple / sphere (unchanged)
     if (isSphere == 1) {
         drawObj(sphere);
     } else {
-        drawObj(objModel);   // apple
+        drawObj(objModel);
     }
 
-    // NEW: draw prism slightly to the left of the apple
-    if (objModel2) {
-        // backup current mvMatrix
-        var mvMatrixBackup = mat4.create();
-        mat4.set(mvMatrix, mvMatrixBackup);
-
-        // move prism left on X (tweak -0.4 if needed)
-        mat4.translate(mvMatrix, [-0.4, 0.0, 0.0]);
-
-        // draw prism with the shifted matrix
-        drawObj(objModel2);
-
-        // restore mvMatrix so water / rest of scene stay correct
-        mat4.set(mvMatrixBackup, mvMatrix);
-    }
 
     drawWater();
 

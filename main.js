@@ -723,7 +723,7 @@ function initObjs(){
 
     // MAIN OBJECT (PRISM)
     //objRaw = loadObj("objs/suzanne.obj");
-        objRaw2 = loadObj("objs/Camologo.obj");
+        objRaw2 = loadObj("objs/prism.obj");
     //objRaw = loadObj("objs/apple.obj");
     //objRaw = loadObj("objs/appleHighPoly.obj");
     //objRaw = loadObj("objs/duck.obj");

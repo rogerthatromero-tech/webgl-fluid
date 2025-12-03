@@ -1462,30 +1462,7 @@ function drawHeight(x,y, radius, strength){   //TextureA as input, TextureB as o
         gl.uniform1f(heightProg.radiusUniform, radius);
         gl.uniform1f(heightProg.strengthUniform, strength);
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, water.TextureA);
-        gl.uniform1i(heightProg.samplerWaterUniform,0);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, water.IBO);
-        gl.drawElements(gl.TRIANGLES, water.IBO.numItems, gl.UNSIGNED_SHORT, 0);
-     
-
-        //-------------- after rendering---------------------------------------------------
-        gl.disableVertexAttribArray(heightProg.vertexPositionAttribute);
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-
-        // reset viewport
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-
-        //swap TextureA  & TextureB 
-        var tmp = water.TextureA;
-        water.TextureA = water.TextureB;
-        water.TextureB = tmp;
-
-}
 
 
 function drawCaustic(){

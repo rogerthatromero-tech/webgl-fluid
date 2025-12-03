@@ -68,17 +68,21 @@
     var accumTime = 0;
 
 
-    //mouse interaction
-    var time = 0;
-    var mouseLeftDown = false;
-    var mouseRightDown = false;
-    var lastMouseX = null;
-    var lastMouseY = null;
+//mouse interaction
+var time = 0;
+var mouseLeftDown = false;
+var mouseRightDown = false;
+var lastMouseX = null;
+var lastMouseY = null;
 
-    var preHit = vec3.create(0.0);
-   //var nxtHit = vec3.create(0.0);
-    var viewportNormal = vec3.create(0.0);
-    var mode = 0;   // 0- mouse click interaction, 1-sphere interaction
+var preHit = vec3.create(0.0);
+//var nxtHit = vec3.create(0.0);
+var viewportNormal = vec3.create(0.0);
+var mode = 0;   // 0- mouse click interaction, 1-sphere interaction
+
+// NEW: which object we are dragging: sphere or prismSphere
+var dragTarget = null;
+
 
 
     var pool = {};    //a cube without top plane
@@ -98,6 +102,14 @@ var depthModel = {};   // depth model for obj
 // NEW: second object (prism)
 var objRaw2;    // raw data for prism
 var objModel2;  // processed gl object data for prism
+
+// NEW: physics sphere for the prism
+var prismSphere = {
+    center: vec3.create([-0.4, -0.15, 0.0]),
+    oldcenter: vec3.create([-0.4, -0.15, 0.0]),
+    radius: 0.23
+};
+
 
 
     var depthTexture;    //for light-based depth rendering
@@ -846,17 +858,43 @@ function startInteraction(x,y){
     var ray = vec3.create();
     ray = rayEyeToPixel(x,y);
 
-    var hit = vec3.create();
-    hit = rayIntersectSphere(tracer.eye, ray, sphere.center, sphere.radius);
-    if(hit!= null){   //sphere interaction
+    // NEW: test hit against apple sphere AND prism sphere
+    var hitSphere = rayIntersectSphere(tracer.eye, ray, sphere.center, sphere.radius);
+    var hitPrism  = rayIntersectSphere(tracer.eye, ray, prismSphere.center, prismSphere.radius);
+
+    var hit = null;
+    dragTarget = null;
+
+    if (hitSphere != null && hitPrism != null) {
+        // choose whichever is closer to the eye
+        var tmp1 = vec3.create(hitSphere);
+        var tmp2 = vec3.create(hitPrism);
+        vec3.subtract(tmp1, tracer.eye);
+        vec3.subtract(tmp2, tracer.eye);
+        var d1 = vec3.length(tmp1);
+        var d2 = vec3.length(tmp2);
+        if (d1 <= d2) {
+            hit = hitSphere;
+            dragTarget = sphere;
+        } else {
+            hit = hitPrism;
+            dragTarget = prismSphere;
+        }
+    } else if (hitSphere != null) {
+        hit = hitSphere;
+        dragTarget = sphere;
+    } else if (hitPrism != null) {
+        hit = hitPrism;
+        dragTarget = prismSphere;
+    }
+
+    if(hit != null){   // object interaction
         preHit = hit;
         viewportNormal = rayEyeToPixel(gl.viewportWidth / 2.0, gl.viewportHeight / 2.0);
         vec3.negate(viewportNormal);
         mode = 1;
-        // console.log("--------------hit sphere at " + vec3.str(preHit));
-        // console.log("--------------viewportNormal="+vec3.str(viewportNormal));
     }
-    else{   //mouse directioin interaction
+    else{   //mouse direction interaction on water plane
         var scale = -tracer.eye[1] / ray[1];
         //move in the direction of ray, until gets the 'y=waterHeight' plane
         var point = vec3.create([tracer.eye[0] + ray[0]*scale, tracer.eye[1] + ray[1]*scale, tracer.eye[2] + ray[2]*scale] );
@@ -866,6 +904,7 @@ function startInteraction(x,y){
         }
     }
 }
+
 
 function duringInterction(x,y){
 
@@ -879,9 +918,7 @@ function duringInterction(x,y){
           drawHeight(point[0],point[2]);
         }
     }
-    //var hit = rayIntersectSphere(tracer.eye, ray, sphere.center, sphere.radius);
-    //if(hit!= null){   //sphere interaction, move sphere around
-    if(mode == 1){  //sphere interaction, move sphere around
+    if(mode == 1 && dragTarget != null){  // object interaction, move whichever we clicked
         var theEye = vec3.create(tracer.eye);
         var preRay = vec3.create(preHit);
         var nxtRay = vec3.create(ray);
@@ -891,34 +928,23 @@ function duringInterction(x,y){
         var t2 = vec3.dot(viewportNormal, nxtRay);
         var t = t1/t2;
         vec3.scale(nxtRay, t);
-        // console.log("-----------------------");
-        // console.log("pre ray: " + vec3.str(preRay));
-        // console.log("nxt ray: " + vec3.str(nxtRay));
 
         var nxtHit = vec3.create();
         nxtHit = vec3.add(theEye, nxtRay);
         var offsetHit = vec3.create(nxtHit);
         vec3.subtract(offsetHit, preHit);   //offsetHit = nxtHit - preHit
 
-        // console.log("pre hit: " + vec3.str(preHit));
-        // console.log("nxt hit: " + vec3.str(nxtHit));
-        // console.log("hit offset: " + vec3.str(offsetHit));
-
         if(vec3.length(offsetHit)>0.0){   //change location
-            vec3.add(sphere.center, offsetHit);
-            //make sure the sphere is in the boundary of pool
-            sphere.center[0] = Math.max(sphere.radius - 1.0, Math.min(1.0 - sphere.radius, sphere.center[0]));
-            if(isSphere == 1){
-                sphere.center[1] = Math.max(sphere.radius - 0.65 - 0.3, Math.min(10, sphere.center[1]));
-            }else{
-                 sphere.center[1] = Math.max(sphere.radius - 0.65 - 0.3 - 0.1, Math.min(10, sphere.center[1]));
-            }
-            sphere.center[2] = Math.max(sphere.radius - 1.0, Math.min(1.0 - sphere.radius, sphere.center[2]));
-            //console.log("drag center: " + vec3.str(sphere.center));
+            vec3.add(dragTarget.center, offsetHit);
+            //make sure the object stays inside the pool
+            dragTarget.center[0] = Math.max(dragTarget.radius - 1.0, Math.min(1.0 - dragTarget.radius, dragTarget.center[0]));
+            dragTarget.center[1] = Math.max(dragTarget.radius - 0.65 - 0.3, Math.min(10, dragTarget.center[1]));
+            dragTarget.center[2] = Math.max(dragTarget.radius - 1.0, Math.min(1.0 - dragTarget.radius, dragTarget.center[2]));
         }
 
         preHit = nxtHit;
     }
+
 
 }
 
@@ -1018,28 +1044,18 @@ function drawScene() {
 
     drawPool();
 
-    // Apple / sphere (unchanged)
+    // Apple / sphere (unchanged logic, now explicit params for obj)
     if (isSphere == 1) {
-        drawObj(sphere);
-    } else {
-        drawObj(objModel);   // apple
+        drawObj(sphere); // sphere branch ignores extra params
+    } else if (objModel) {
+        drawObj(objModel, sphere.center, sphere.radius);   // apple uses sphere center
     }
 
-    // NEW: draw prism slightly to the left of the apple
+    // NEW: draw prism at its own center using prismSphere
     if (objModel2) {
-        // backup current mvMatrix
-        var mvMatrixBackup = mat4.create();
-        mat4.set(mvMatrix, mvMatrixBackup);
-
-        // move prism left on X (tweak -0.4 if needed)
-        mat4.translate(mvMatrix, [-0.4, 0.0, 0.0]);
-
-        // draw prism with the shifted matrix
-        drawObj(objModel2);
-
-        // restore mvMatrix so water / rest of scene stay correct
-        mat4.set(mvMatrixBackup, mvMatrix);
+        drawObj(objModel2, prismSphere.center, prismSphere.radius);
     }
+
 
     drawWater();
 
@@ -1048,11 +1064,18 @@ function drawScene() {
     drawNormal();
     drawSimulation();
     drawSimulation();
-    drawInteraction();
-    // console.log("old center: "+ vec3.str(sphere.oldcenter));
-   // console.log("new center: "+ vec3.str(sphere.center));
+
+    // apply interaction for apple
+    drawInteraction(sphere.center, sphere.oldcenter, sphere.radius);
+    // apply interaction for prism
+    drawInteraction(prismSphere.center, prismSphere.oldcenter, prismSphere.radius);
+
+    // update old centers
     sphere.oldcenter = vec3.create(sphere.center);
+    prismSphere.oldcenter = vec3.create(prismSphere.center);
+
     drawCaustic();
+
     //drawQuad(finalrenderTexture);
     if(parameters.Wind == true){
        drawWind();
@@ -1225,7 +1248,8 @@ function drawSkyBox() {
 }
 
 
-function drawObj(model){
+function drawObj(model, center, radius){
+
 
         if(parameters.God_rays == true) initFrameBuffer(finalrenderTexture, finaldepthTexture, gl.viewportWidth, gl.viewportHeight);
 
@@ -1270,7 +1294,6 @@ function drawObj(model){
         else{
           //   console.log("drawing obj instead of sphere");
             for(var i = 0; i < model.numGroups(); i++) {
-                //console.log("model VBO: " +model.VBO(i));
                     gl.bindBuffer(gl.ARRAY_BUFFER, model.VBO(i));
                     gl.vertexAttribPointer(objProg.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
                     gl.enableVertexAttribArray(objProg.vertexPositionAttribute);
@@ -1280,11 +1303,13 @@ function drawObj(model){
                     gl.enableVertexAttribArray(objProg.vertexNormalAttribute);
 
                     setMatrixUniforms(objProg);
-                  // console.log("center is "+ vec3.str(model.center));
-                   //console.log("radius is " + model.radius);
-                    gl.uniform3fv(objProg.centerUniform, sphere.center);
-                    //gl.uniform1f(objProg.RadiusUniform, model.radius);
+
+                    // use per-object center and radius
+                    gl.uniform3fv(objProg.centerUniform, center);
+                    gl.uniform3fv(objProg.sphereCenterUniform, center);
+                    gl.uniform1f(objProg.sphereRadiusUniform, radius);
                     gl.uniform1i(objProg.isSphereUniform, 0);
+
 
                     gl.activeTexture(gl.TEXTURE2);    
                     gl.bindTexture(gl.TEXTURE_2D, water.TextureA);
@@ -1576,7 +1601,7 @@ function drawSimulation(){
 
 }
 
-function drawInteraction(){
+function drawInteraction(newCenter, oldCenter, radius){   // apply interaction for ONE object
 
         initFrameBuffer(water.TextureB, null, textureSize, textureSize);
         //resize viewport
@@ -1589,11 +1614,33 @@ function drawInteraction(){
         gl.vertexAttribPointer(objectProg.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(objectProg.vertexPositionAttribute);
 
-       // console.log("old center: "+ vec3.str(sphere.oldcenter));
-       // console.log("new center: "+ vec3.str(sphere.center));
-        gl.uniform3fv(objectProg.newCenterUniform, sphere.center);
-        gl.uniform3fv(objectProg.oldCenterUniform, sphere.oldcenter);
-        gl.uniform1f(objectProg.radiusUniform, sphere.radius);
+        gl.uniform3fv(objectProg.newCenterUniform, newCenter);
+        gl.uniform3fv(objectProg.oldCenterUniform, oldCenter);
+        gl.uniform1f(objectProg.radiusUniform, radius);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, water.TextureA);
+        gl.uniform1i(objectProg.samplerWaterUniform,0);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, water.IBO);
+        gl.drawElements(gl.TRIANGLES, water.IBO.numItems, gl.UNSIGNED_SHORT, 0);
+
+        //-------------- after rendering---------------------------------------------------
+        gl.disableVertexAttribArray(objectProg.vertexPositionAttribute);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+        // reset viewport
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+        //swap TextureA  & TextureB 
+        var tmp = water.TextureA;
+        water.TextureA = water.TextureB;
+        water.TextureB = tmp;
+}
+
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, water.TextureA);

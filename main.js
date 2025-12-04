@@ -1975,7 +1975,7 @@ function webGLStart() {
   initBuffers(sphere, sphereObj);
   initBuffers(water, planeWater);
   initBuffers(quad, screenQuad);
-  sphere.center = vec3.create([0.0,1.0,0.0]);
+  sphere.center = vec3.create([0.0,0.2,0.0]);
   sphere.oldcenter = vec3.create(sphere.center);
   sphere.radius = sphereObj.radius;
 

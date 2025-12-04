@@ -239,8 +239,8 @@ var spearOldCenters = [];
         this.Depth_From_Light = false;
         this.Depth_From_Camera = false;
         this.God_rays = false;
-        this.Reflection_Texture = false;
-        this.Draw_Obj_Reflection = false;    
+        this.Reflection_Texture = true;
+        this.Draw_Obj_Reflection = true;        
     }
 
 

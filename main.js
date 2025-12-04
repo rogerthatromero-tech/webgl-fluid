@@ -718,7 +718,7 @@ function initObjs(){
    //objRaw = loadObj("objs/prism.obj");
 //objRaw = loadObj("objs/apple.obj");
 //objRaw = loadObj("objs/appleHighPoly.obj");
-    objRaw = loadObj("objs/duck.obj");
+    objRaw = loadObj("objs/Camologo-WebGL-Fluid2.obj");
     //objRaw = loadObj("objs/duckHighPoly.obj");
 
     objRaw.addCallback(function () {

@@ -50,7 +50,7 @@
     var radius = 4.0;
     var azimuth = 0.5*Math.PI;
     var elevation = 0.0;
-    var fov = 45.0;
+    var fov = 25.0;
     var eye = sphericalToCartesian(radius, azimuth, elevation);
     var center = [0.0, 0.0, 0.0];
     var up = [0.0, 1.0, 0.0];
@@ -820,17 +820,10 @@ function handleMouseMove(event) {
 }
 
 function handleMouseWheel(event){
-        //console.log("scroll");
-    var move = event.wheelDelta/240;
-    
-    if (move < 0 || pMatrix[14] > -2){
-      //  pMatrix = mat4.translate(pMatrix, [0, 0, event.wheelDelta/240]);
-    }
-    if(fov+move< 90 && fov+move> 25){
-        fov += move;
-    }
+    // lock zoom at current fov
     return false; // Don't scroll the page 
 }
+
 
 function startInteraction(x,y){
     initTracer();

@@ -898,8 +898,14 @@ function duringInterction(x,y){
 
         if(vec3.length(offsetHit)>0.0){   //change location
             vec3.add(sphere.center, offsetHit);
-            //make sure the sphere is in the boundary of pool
-            sphere.center[0] = Math.max(sphere.radius - 1.0, Math.min(1.0 - sphere.radius, sphere.center[0]));
+
+            //make sure the whole 5-spear bar stays in the pool bounds
+            var minOffset = Math.min.apply(null, spearOffsets);
+            var maxOffset = Math.max.apply(null, spearOffsets);
+            var leftLimit  = (sphere.radius - 1.0) - minOffset;
+            var rightLimit = (1.0 - sphere.radius) - maxOffset;
+            sphere.center[0] = Math.max(leftLimit, Math.min(rightLimit, sphere.center[0]));
+
             if(isSphere == 1){
                 sphere.center[1] = Math.max(sphere.radius - 0.65 - 0.3, Math.min(10, sphere.center[1]));
             }else{
@@ -908,6 +914,7 @@ function duringInterction(x,y){
             sphere.center[2] = Math.max(sphere.radius - 1.0, Math.min(1.0 - sphere.radius, sphere.center[2]));
             //console.log("drag center: " + vec3.str(sphere.center));
         }
+
 
         preHit = nxtHit;
     }

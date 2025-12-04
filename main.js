@@ -49,7 +49,7 @@
     var eyePos;
     var radius = 4.0;
     var azimuth = 0.5*Math.PI;
-    var elevation = 0.5;
+    var elevation = 0.0;
     var fov = 45.0;
     var eye = sphericalToCartesian(radius, azimuth, elevation);
     var center = [0.0, 0.0, 0.0];

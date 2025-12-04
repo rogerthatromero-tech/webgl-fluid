@@ -86,6 +86,14 @@
     var water = {};   //a plane
     var quad = {};
     var sphere = {};
+    var spearCount = 5;
+// X-offsets (left → right from the camera point of view). Tweak these to
+// line up with the 5 tips of your 3D model.
+var spearOffsets = [-0.30, -0.15, 0.0, 0.15, 0.30];
+
+var spearCenters = [];
+var spearOldCenters = [];
+
     var objRaw;     //raw primitive data for obj loading
     var objModel;    //processed gl object data for obj
     var depthModel = {};   //put tmp necessary vbo, ibo info into this object, for drawing depth
@@ -1538,47 +1546,60 @@ function drawSimulation(){
 
 function drawInteraction(){
 
-        initFrameBuffer(water.TextureB, null, textureSize, textureSize);
-        //resize viewport
-        gl.viewport(0, 0, textureSize, textureSize);
+        // Update absolute spear positions based on the current 3D object center.
+        // All spears stay on the same "row" (same Y and Z), only X shifts.
+        for (var i = 0; i < spearCount; i++) {
+            var x = sphere.center[0] + spearOffsets[i];
+            var newPos = vec3.create([x, sphere.center[1], sphere.center[2]]);
 
-        //-------------------start rendering to texture--------------------------------------
-        gl.useProgram(objectProg);
+            if (!spearCenters[i]) {
+                spearCenters[i] = newPos;
+                spearOldCenters[i] = vec3.create(newPos);
+            } else {
+                spearOldCenters[i] = spearCenters[i];
+                spearCenters[i] = newPos;
+            }
+        }
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, water.VBO);
-        gl.vertexAttribPointer(objectProg.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(objectProg.vertexPositionAttribute);
+        // One pass per spear: TextureA → TextureB, then swap, so all 5
+        // spears write into the water height texture and "stack" together.
+        for (var i = 0; i < spearCount; i++) {
+            initFrameBuffer(water.TextureB, null, textureSize, textureSize);
+            gl.viewport(0, 0, textureSize, textureSize);
 
-       // console.log("old center: "+ vec3.str(sphere.oldcenter));
-       // console.log("new center: "+ vec3.str(sphere.center));
-        gl.uniform3fv(objectProg.newCenterUniform, sphere.center);
-        gl.uniform3fv(objectProg.oldCenterUniform, sphere.oldcenter);
-        gl.uniform1f(objectProg.radiusUniform, sphere.radius);
+            gl.useProgram(objectProg);
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, water.TextureA);
-        gl.uniform1i(objectProg.samplerWaterUniform,0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, water.VBO);
+            gl.vertexAttribPointer(objectProg.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(objectProg.vertexPositionAttribute);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, water.IBO);
-        gl.drawElements(gl.TRIANGLES, water.IBO.numItems, gl.UNSIGNED_SHORT, 0);
+            gl.uniform3fv(objectProg.newCenterUniform, spearCenters[i]);
+            gl.uniform3fv(objectProg.oldCenterUniform, spearOldCenters[i]);
+            gl.uniform1f(objectProg.radiusUniform, sphere.radius);
 
-        //-------------- after rendering---------------------------------------------------
-        gl.disableVertexAttribArray(objectProg.vertexPositionAttribute);
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, water.TextureA);
+            gl.uniform1i(objectProg.samplerWaterUniform, 0);
 
-        // reset viewport
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, water.IBO);
+            gl.drawElements(gl.TRIANGLES, water.IBO.numItems, gl.UNSIGNED_SHORT, 0);
+
+            gl.disableVertexAttribArray(objectProg.vertexPositionAttribute);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+            // Swap TextureA & TextureB so the next spear uses the updated water.
+            var tmp = water.TextureA;
+            water.TextureA = water.TextureB;
+            water.TextureB = tmp;
+        }
+
+        // Reset framebuffer + viewport
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.bindRenderbuffer(gl.RENDERBUFFER, null);
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-
-        //swap TextureA  & TextureB 
-        var tmp = water.TextureA;
-        water.TextureA = water.TextureB;
-        water.TextureB = tmp;
-
-
 }
+
 
 function drawDepth(colTexture, depTexture, modelView, proj, model, renderColor, mode){   //draw depth from light source
     mode = mode || 0;
@@ -1978,12 +1999,22 @@ function webGLStart() {
   sphere.center = vec3.create([0.0,0.2,0.0]);
   sphere.oldcenter = vec3.create(sphere.center);
   sphere.radius = sphereObj.radius;
+      // Initialize the 5 spears in a straight row, facing the camera.
+  spearCenters = [];
+  spearOldCenters = [];
+  for (var i = 0; i < spearCount; i++) {
+    var x = sphere.center[0] + spearOffsets[i];      // left / right
+    var c = vec3.create([x, sphere.center[1], sphere.center[2]]);
+    spearCenters.push(c);
+    spearOldCenters.push(vec3.create(c));
+  }
+
 
    initObjs();
    // initTexture();
    pool.Texture = gl.createTexture();
    //initTexture(pool.Texture, "tile/tile.png");
-   initTexture(pool.Texture, "tile/tile3.jpg");
+   initTexture(pool.Texture, "tile/BlackGoldGranite1.png");
    currentPoolPattern = "white brick";
    water.TextureA = gl.createTexture();
    water.TextureB = gl.createTexture();

@@ -89,7 +89,7 @@
     var spearCount = 5;
 // X-offsets (left → right from the camera point of view). Tweak these to
 // line up with the 5 tips of your 3D model.
-var spearOffsets = [-0.45, -0.20, 0.0, 0.20, 0.45];
+var spearOffsets = [-0.50, -0.20, 0.0, 0.20, 0.50];
 
 var spearCenters = [];
 var spearOldCenters = [];

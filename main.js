@@ -2014,7 +2014,7 @@ function webGLStart() {
    // initTexture();
    pool.Texture = gl.createTexture();
    //initTexture(pool.Texture, "tile/tile.png");
-   initTexture(pool.Texture, "tile/BlackGoldGranite1.png");
+   initTexture(pool.Texture, "tile/white-golden-line-mineral.png");
    currentPoolPattern = "white brick";
    water.TextureA = gl.createTexture();
    water.TextureB = gl.createTexture();

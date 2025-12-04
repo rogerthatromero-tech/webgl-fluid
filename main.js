@@ -50,7 +50,7 @@
     var radius = 4.0;
     var azimuth = 0.5*Math.PI;
     var elevation = -0.08134; // midpoint between water surface (0) and pool bottom (~-0.65)
-    var fov = 35.0;
+    var fov = 36.0;
     var eye = sphericalToCartesian(radius, azimuth, elevation);
     var center = [0.0, 0.0, 0.0];
     var up = [0.0, 1.0, 0.0];

@@ -334,7 +334,7 @@
           color = getSphereColor(vVertexPosition, uSphereCenter, uSphereRadius);
        }
        else{
-          color = vec3(1.0, 1.0, 1.0);
+          color = vec3(1.0, 1.0, 0.0);
           color *= clamp(dot(lightDir, vVertexNormal), 0.20,1.0);
           if(vVertexPosition.y < data.r){
             vec3 refractedLight = refract(-lightDir, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -391,6 +391,7 @@
     uniform float uSphereRadius;
     uniform vec3 uSphereCenter;
     uniform float uCausticOn;
+    uniform int uDrawObjReflect;
     varying vec3 vVertexPosition;
      varying vec3 vReflectPosition;
    // varying vec3 vVertexNormal;
@@ -499,8 +500,12 @@
     vec3 getRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
         vec3 color;
         float q = intersectSphere(origin, ray, uSphereCenter, uSphereRadius);
-        if (q < 1.0e6 && uIsSphere == 1) {
-          color = getSphereColor(origin + ray * q,  uSphereCenter, uSphereRadius);
+        if (q < 1.0e6 ) {
+          if(uIsSphere == 1){
+            color = getSphereColor(origin + ray * q,  uSphereCenter, uSphereRadius);
+          }else {
+            color = vec3(1.0, 1.0, 0.0) * 0.6;
+          }
         } else if (ray.y < 0.0) {
           vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, poolHeight, 1.0));
           color = getWallColor(origin + ray * t.y);
@@ -533,6 +538,20 @@
           float fresnel = mix(0.25, 1.0, pow(1.0 - dot(normal, -eyeDir), 3.0)); 
           vec3 refraColor = getRayColor(vVertexPosition, refractDir, underwaterColor);
           vec3 refleColor = getRayColor(vVertexPosition, reflectDir, underwaterColor);
+          if(uIsSphere == 0 && uDrawObjReflect ==1){
+            vec2 coord = vReflectPosition.xy;
+            coord.x = 1.0 -coord.x;
+           // coord.y = 1.0 -coord.y;
+            vec3 refl = texture2D(uSamplerReflect, coord).rgb;
+            vec3 refr = texture2D(uSamplerReflect, vReflectPosition.xy).rgb;
+            if(length(refl)>0.0 && vVertexPosition.y > 0.0){
+                refleColor += refl * 0.5;
+            }
+             if(length(refr)>0.0 && vVertexPosition.y < 0.0){
+                refraColor += refr * 0.5;
+            }
+          }
+          
           gl_FragColor = vec4(mix(refleColor, refraColor, fresnel), 1.0);
         }else if(uProgNum == 1){  //below water
           normal = -normal;
@@ -541,13 +560,18 @@
           float fresnel = mix(0.5, 1.0, pow(1.0 - dot(normal, -eyeDir), 3.0)); 
           vec3 refraColor = getRayColor(vVertexPosition, refractDir, abovewaterColor);
           vec3 refleColor = getRayColor(vVertexPosition, reflectDir, abovewaterColor);
+          if(uIsSphere == 0 && uDrawObjReflect ==1){
+            vec3 refl = texture2D(uSamplerReflect, vReflectPosition.xy).rgb;
+            if(length(refl)>0.0){
+                refleColor += refl * 0.5;
+            }
+          }
           gl_FragColor = vec4(mix(refleColor, refraColor, (1.0 - fresnel) * length(refractDir)), 1.0); 
          
         }
         
     }
 </script>
-
 
 <script id="caustic-vs" type="x-shader/x-vertex">
       
@@ -781,7 +805,7 @@
     {
       //gl_FragColor = vec4(0.5,0.0,1.0,1.0);
       //if(vVertexPosition.y < 0.0){
-        vec3 color = vec3(1.0, 1.0, 1.0);
+        vec3 color = vec3(1.0, 1.0, 0.0);
         color *= clamp(dot(lightDir, vVertexNormal), 0.20,1.0);
         gl_FragColor = vec4(color, 1.0);
       //}
@@ -1016,24 +1040,48 @@
     
 </head> 
 
-<body onload="webGLStart();" style="margin:0; background:#000; overflow:hidden;">
+<body onload="webGLStart();">
 
-  <canvas
-    id="the-canvas"
-    width="1920"
-    height="1920"
-    style="cursor:hand; display:block; margin:0 auto; max-width:100%; height:auto;"
-  >
-    WebGL unavailable.
-  </canvas>
+<table>
+      <tr>
+          <td>
+              <canvas id="the-canvas" width="1080" height="720" style="cursor:hand;">  WebGL unavailable. </canvas>
 
-  <!-- Keep fps target so JS doesn't crash, but hide it -->
-  <div style="display:none;">
-    fps: <span id="fps"></span>
-  </div>
+          </td>
 
+          <td align="left" valign="top" style="position:absolute;left:1080px;padding:20px;">
+              <h1><strong>WebGL Water</strong></h1> <br>
+              Inspired from Evan Wallace's <a href = "http://madebyevan.com/webgl-water/" target = "_blank">work</a>  <br>
+              <a href = "http://www.bingludu.com" target = "_blank"><strong>Binglu's Website</strong></a>  <br>
+              <a href = "http://www.maxinjie.com/ " target = "_blank"><strong>Xinjie's Website</strong></a> <br>
+              <a href = "https://github.com/dblsai/WebGL-Fluid" target = "_blank"><strong>View Source</strong></a> <br>
+              <a href = "https://www.youtube.com/watch?v=Wq27HIlzpmQ&feature=youtu.be" target = "_blank"><strong>Video Demo</strong></a> <br>
+              <br><strong>Interaction: </strong><br></h3>
+              <ul>
+              <li>Right Mouse Button - rotate</li>
+              <li>Left Mouse Button - interact </li>
+              <li>Middle Mouse Wheel - zoom </li>
+   
+              </ul>
+              <br><strong>Features:</strong> <br>
+              <ul>
+              <li>Reflection </li>
+              <li>Refraction </li>
+              <li>Soft Shadow </li>
+              <li>Mouse Interaction </li>
+              <li>Sphere Interaction </li>
+              <li>Caustics </li>
+              <li>Obj Interaction </li>
+              <li>God Ray </li>
+              </ul>
+        
+      
+          <div>fps: <span id="fps"></span></div>
+          </td>
+      </tr>
+</table>
+
+ 
 </body>
-
-
 
 </html>

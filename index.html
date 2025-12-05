@@ -1040,48 +1040,22 @@
     
 </head> 
 
-<body onload="webGLStart();">
+<body onload="webGLStart();" style="margin:0; background:#000; overflow:hidden;">
 
-<table>
-      <tr>
-          <td>
-              <canvas id="the-canvas" width="1080" height="720" style="cursor:hand;">  WebGL unavailable. </canvas>
+  <canvas
+    id="the-canvas"
+    width="1920"
+    height="1920"
+    style="cursor:hand; display:block; margin:0 auto; max-width:100%; height:auto;"
+  >
+    WebGL unavailable.
+  </canvas>
 
-          </td>
+  <!-- Keep fps target so JS doesn't crash, but hide it -->
+  <div style="display:none;">
+    fps: <span id="fps"></span>
+  </div>
 
-          <td align="left" valign="top" style="position:absolute;left:1080px;padding:20px;">
-              <h1><strong>WebGL Water</strong></h1> <br>
-              Inspired from Evan Wallace's <a href = "http://madebyevan.com/webgl-water/" target = "_blank">work</a>  <br>
-              <a href = "http://www.bingludu.com" target = "_blank"><strong>Binglu's Website</strong></a>  <br>
-              <a href = "http://www.maxinjie.com/ " target = "_blank"><strong>Xinjie's Website</strong></a> <br>
-              <a href = "https://github.com/dblsai/WebGL-Fluid" target = "_blank"><strong>View Source</strong></a> <br>
-              <a href = "https://www.youtube.com/watch?v=Wq27HIlzpmQ&feature=youtu.be" target = "_blank"><strong>Video Demo</strong></a> <br>
-              <br><strong>Interaction: </strong><br></h3>
-              <ul>
-              <li>Right Mouse Button - rotate</li>
-              <li>Left Mouse Button - interact </li>
-              <li>Middle Mouse Wheel - zoom </li>
-   
-              </ul>
-              <br><strong>Features:</strong> <br>
-              <ul>
-              <li>Reflection </li>
-              <li>Refraction </li>
-              <li>Soft Shadow </li>
-              <li>Mouse Interaction </li>
-              <li>Sphere Interaction </li>
-              <li>Caustics </li>
-              <li>Obj Interaction </li>
-              <li>God Ray </li>
-              </ul>
-        
-      
-          <div>fps: <span id="fps"></span></div>
-          </td>
-      </tr>
-</table>
-
- 
 </body>
 
 </html>

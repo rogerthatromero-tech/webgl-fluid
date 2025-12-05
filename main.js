@@ -238,7 +238,7 @@ var parameters = new function(){
     this.Rain = false;
     this.Depth_From_Light = false;
     this.Depth_From_Camera = false;
-    this.God_rays = false;
+    this.God_rays = true;
 
     // Keep the normal scene, not the debug reflection-only view
     this.Reflection_Texture = false;

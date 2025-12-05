@@ -228,20 +228,25 @@ var spearOldCenters = [];
         f1.add(parameters, 'Draw_Obj_Reflection');
     };
 
-    var parameters = new function(){
-        this.Caustic = true;
+var parameters = new function(){
+    this.Caustic = true;
 
-        this.Object = "duck";
-        this.Pool_Pattern = "white brick";
-        this.Sphere_Radius = 0.25;        
-        this.Wind = true;
-        this.Rain = false;
-        this.Depth_From_Light = false;
-        this.Depth_From_Camera = false;
-        this.God_rays = false;
-        this.Reflection_Texture = true;
-        this.Draw_Obj_Reflection = true;        
-    };
+    this.Object = "duck";
+    this.Pool_Pattern = "white brick";
+    this.Sphere_Radius = 0.25;
+    this.Wind = true;
+    this.Rain = false;
+    this.Depth_From_Light = false;
+    this.Depth_From_Camera = false;
+    this.God_rays = false;
+
+    // Keep the normal scene, not the debug reflection-only view
+    this.Reflection_Texture = false;
+
+    // Make sure OBJ reflection is actually used by the water shader
+    this.Draw_Obj_Reflection = true;
+};
+
 
 
     function initShaders() {

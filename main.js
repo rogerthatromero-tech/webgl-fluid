@@ -241,7 +241,7 @@ var spearOldCenters = [];
         this.God_rays = false;
         this.Reflection_Texture = true;
         this.Draw_Obj_Reflection = true;        
-    }
+    };
 
 
     function initShaders() {
